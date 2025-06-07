@@ -4,6 +4,7 @@ function App() {
   // array of shoe objects
   const [shoes, setShoes] = useState([]);
   const [selectedIndex, setSelectIndex] = useState(null);
+  const [expandedHistoryIndex, setExpandedHistoryIndex] = useState(null);
 
   // state variables to hold inputs for new shoe form
   const [brand, setBrand] = useState("");
@@ -40,6 +41,7 @@ function App() {
     setColor("");
     setFirstRunDate(() => new Date().toISOString().split("T")[0]);
     setSelectIndex(shoes.length); // <-- Auto-select newly added shoe
+    setShowAddShoeForm(false); // Close the form after adding a shoe
   }
 
   // mileage handler
@@ -87,72 +89,10 @@ function App() {
       <div style={{ padding: 20, maxWidth: 400, margin: "auto" }}>
         <h1>Shoe Mileage Tracker</h1>
 
-        {/* Lists all shoes */}
-        <h2>Shoes</h2>
-        {shoes.length === 0 && <p>No shoes in inventory.</p>}
-        <ul style={{ paddingLeft: 0, listStyle: "none" }}>
-          {shoes.map((shoe, index) => (
-            <li
-              key={index}
-              onClick={() => setSelectIndex(index)} // select shoe on click
-              style={{
-                padding: 10,
-                marginBottom: 6,
-                cursor: "pointer",
-                backgroundColor:
-                  selectedIndex === index ? "#145A32" : "#3A3B3C", // highlights selected shoe
-                borderRadius: 6,
-              }}
-            >
-              <strong>
-                {shoe.brand} {shoe.name}
-              </strong>{" "}
-              - {shoe.color} <br />
-              First Run: {shoe.firstRunDate} <br />
-              Mileage: {shoe.miles.toFixed(2)}
-            </li>
-          ))}
-        </ul>
-
-        {/* Add miles for selected shoe */}
-        {selectedShoes && (
+        {/* Add Shoe Form - Shows at top when no shoes, bottom when shoes exist */}
+        {shoes.length === 0 ? (
           <>
-            <h2>
-              Add miles for {selectedShoes.brand} {selectedShoes.name}
-            </h2>
-            <input
-              type="number"
-              placeholder="Miles run"
-              value={milesInput}
-              onChange={(e) => setMilesInput(e.target.value)}
-              step="0.1"
-              min="0"
-              style={{ width: "100%", padding: 8, marginBottom: 10 }}
-            />
-            <input
-              type="date"
-              value={runDate}
-              onChange={(e) => setRunDate(e.target.value)}
-            />
-            <input
-              type="text"
-              value={runLocation}
-              onChange={(e) => setRunLocation(e.target.value)}
-              placeholder="Where did you run?"
-            />
-            <button
-              onClick={addMiles}
-              style={{ padding: "8px 12px", outline: "none", boarder: "none" }}
-            >
-              Add Miles
-            </button>
-          </>
-        )}
-
-        {showAddShoeForm && (
-          <>
-            {/* Form for adding shoes */}
-            <h2>Add New Shoe</h2>
+            <h2>Add Your First Shoe</h2>
             <input
               placeholder="Brand"
               value={brand}
@@ -185,19 +125,209 @@ function App() {
               Add Shoe
             </button>
           </>
-        )}
+        ) : (
+          <>
+            {/* Lists all shoes */}
+            <h2>Shoes</h2>
+            <ul style={{ paddingLeft: 0, listStyle: "none" }}>
+              {shoes.map((shoe, index) => (
+                <li
+                  key={index}
+                  onClick={() => setSelectIndex(index)}
+                  style={{
+                    padding: 10,
+                    marginBottom: 6,
+                    cursor: "pointer",
+                    backgroundColor:
+                      selectedIndex === index ? "#145A32" : "#3A3B3C",
+                    borderRadius: 6,
+                  }}
+                >
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <div>
+                      <strong>
+                        {shoe.brand} {shoe.name}
+                      </strong>{" "}
+                      - {shoe.color} <br />
+                      First Run: {shoe.firstRunDate} <br />
+                      Total Mileage: {shoe.miles.toFixed(2)}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setExpandedHistoryIndex(
+                          expandedHistoryIndex === index ? null : index
+                        );
+                      }}
+                      style={{
+                        padding: "4px 8px",
+                        fontSize: "0.9em",
+                        backgroundColor: "transparent",
+                        border: "1px solid #fff",
+                        color: "#fff",
+                        cursor: "pointer",
+                        borderRadius: "4px",
+                      }}
+                    >
+                      {expandedHistoryIndex === index
+                        ? "Hide History"
+                        : "Show History"}
+                    </button>
+                  </div>
 
-        <button
-          onClick={() => setShowAddShoeForm((prev) => !prev)}
-          style={{
-            marginBottom: 10,
-            padding: "6px 10px",
-            outline: "none",
-            boarder: "none",
-          }}
-        >
-          {showAddShoeForm ? "Close" : "Add New Shoe"}
-        </button>
+                  {expandedHistoryIndex === index && shoe.logs && (
+                    <div
+                      style={{
+                        marginTop: "10px",
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                        borderRadius: "4px",
+                        padding: "10px",
+                      }}
+                    >
+                      <table
+                        style={{ width: "100%", borderCollapse: "collapse" }}
+                      >
+                        <thead>
+                          <tr
+                            style={{
+                              borderBottom:
+                                "1px solid rgba(255, 255, 255, 0.2)",
+                            }}
+                          >
+                            <th style={{ textAlign: "left", padding: "8px" }}>
+                              Date
+                            </th>
+                            <th style={{ textAlign: "left", padding: "8px" }}>
+                              Miles
+                            </th>
+                            <th style={{ textAlign: "left", padding: "8px" }}>
+                              Location
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {shoe.logs.map((log, logIndex) => (
+                            <tr
+                              key={logIndex}
+                              style={{
+                                borderBottom:
+                                  "1px solid rgba(255, 255, 255, 0.1)",
+                                "&:last-child": { borderBottom: "none" },
+                              }}
+                            >
+                              <td style={{ padding: "8px" }}>{log.date}</td>
+                              <td style={{ padding: "8px" }}>
+                                {log.miles.toFixed(2)}
+                              </td>
+                              <td style={{ padding: "8px" }}>
+                                {log.location || "-"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {/* Add miles for selected shoe */}
+            {selectedShoes && (
+              <>
+                <h2>
+                  Add miles for {selectedShoes.brand} {selectedShoes.name}
+                </h2>
+                <input
+                  type="number"
+                  placeholder="Miles run"
+                  value={milesInput}
+                  onChange={(e) => setMilesInput(e.target.value)}
+                  step="0.1"
+                  min="0"
+                  style={{ width: "100%", padding: 8, marginBottom: 10 }}
+                />
+                <input
+                  type="date"
+                  value={runDate}
+                  onChange={(e) => setRunDate(e.target.value)}
+                />
+                <input
+                  type="text"
+                  value={runLocation}
+                  onChange={(e) => setRunLocation(e.target.value)}
+                  placeholder="Where did you run?"
+                />
+                <button
+                  onClick={addMiles}
+                  style={{
+                    padding: "8px 12px",
+                    outline: "none",
+                    boarder: "none",
+                  }}
+                >
+                  Add Miles
+                </button>
+              </>
+            )}
+
+            {/* Add Shoe Form - Only shown when shoes exist */}
+            <button
+              onClick={() => setShowAddShoeForm((prev) => !prev)}
+              style={{
+                marginBottom: 10,
+                padding: "6px 10px",
+                outline: "none",
+                boarder: "none",
+              }}
+            >
+              {showAddShoeForm ? "Close" : "Add New Shoe"}
+            </button>
+
+            {showAddShoeForm && (
+              <>
+                <h2>Add New Shoe</h2>
+                <input
+                  placeholder="Brand"
+                  value={brand}
+                  onChange={(e) => setBrand(e.target.value)}
+                  style={{ width: "100%", marginBottom: 6, padding: 6 }}
+                />
+                <input
+                  placeholder="Shoe Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  style={{ width: "100%", marginBottom: 6, padding: 6 }}
+                />
+                <input
+                  placeholder="Color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  style={{ width: "100%", marginBottom: 6, padding: 6 }}
+                />
+                <input
+                  type="date"
+                  placeholder="First Run Date"
+                  value={firstRunDate}
+                  onChange={(e) => setFirstRunDate(e.target.value)}
+                  style={{ width: "100%", marginBottom: 12, padding: 6 }}
+                />
+                <button
+                  onClick={addShoe}
+                  style={{ padding: "8px 12px", marginBottom: 20 }}
+                >
+                  Add Shoe
+                </button>
+              </>
+            )}
+          </>
+        )}
       </div>
     </>
   );
