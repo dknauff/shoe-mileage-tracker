@@ -13,6 +13,7 @@ function App() {
   const [firstRunDate, setFirstRunDate] = useState(
     () => new Date().toISOString().split("T")[0]
   );
+  const [expectedLifecycle, setExpectedLifecycle] = useState("");
 
   // state for logging runs
   const [milesInput, setMilesInput] = useState("");
@@ -24,7 +25,7 @@ function App() {
 
   // Add a shoe
   function addShoe() {
-    if (!brand || !name || !color || !firstRunDate) {
+    if (!brand || !name || !color || !firstRunDate || !expectedLifecycle) {
       alert("Fill in all fields.");
       return;
     }
@@ -34,14 +35,16 @@ function App() {
       color,
       firstRunDate,
       miles: 0,
+      expectedLifecycle: parseFloat(expectedLifecycle),
     };
-    setShoes([...shoes, newShoe]); // spread operator -> makes a new array that includes all existing shoes
+    setShoes([...shoes, newShoe]);
     setBrand("");
     setName("");
     setColor("");
     setFirstRunDate(() => new Date().toISOString().split("T")[0]);
-    setSelectIndex(shoes.length); // <-- Auto-select newly added shoe
-    setShowAddShoeForm(false); // Close the form after adding a shoe
+    setExpectedLifecycle("");
+    setSelectIndex(shoes.length);
+    setShowAddShoeForm(false);
   }
 
   // mileage handler
@@ -84,10 +87,161 @@ function App() {
 
   const selectedShoes = selectedIndex !== null ? shoes[selectedIndex] : null;
 
+  const [editingLog, setEditingLog] = useState({
+    shoeIndex: null,
+    logIndex: null,
+  });
+  const [editLogData, setEditLogData] = useState({
+    miles: "",
+    date: "",
+    location: "",
+  });
+
+  // Handler to start editing a log
+  function startEditLog(shoeIndex, logIndex) {
+    const log = shoes[shoeIndex].logs[logIndex];
+    setEditingLog({ shoeIndex, logIndex });
+    setEditLogData({
+      miles: log.miles.toString(),
+      date: log.date,
+      location: log.location || "",
+    });
+  }
+
+  // Handler to cancel editing
+  function cancelEditLog() {
+    setEditingLog({ shoeIndex: null, logIndex: null });
+    setEditLogData({ miles: "", date: "", location: "" });
+  }
+
+  // Handler to save edited log
+  function saveEditLog() {
+    const { shoeIndex, logIndex } = editingLog;
+    const parsedMiles = parseFloat(editLogData.miles);
+    if (isNaN(parsedMiles) || parsedMiles <= 0) {
+      alert("Miles must be a positive number.");
+      return;
+    }
+    const updatedShoes = shoes.map((shoe, sIdx) => {
+      if (sIdx === shoeIndex) {
+        const oldMiles = shoe.logs[logIndex].miles;
+        const updatedLogs = shoe.logs.map((log, lIdx) =>
+          lIdx === logIndex
+            ? {
+                ...log,
+                miles: parsedMiles,
+                date: editLogData.date,
+                location: editLogData.location,
+              }
+            : log
+        );
+        return {
+          ...shoe,
+          miles: shoe.miles - oldMiles + parsedMiles,
+          logs: updatedLogs,
+        };
+      }
+      return shoe;
+    });
+    setShoes(updatedShoes);
+    cancelEditLog();
+  }
+
+  // Handler to delete a log
+  function deleteLog(shoeIndex, logIndex) {
+    if (!window.confirm("Are you sure you want to delete this run?")) return;
+    const updatedShoes = shoes.map((shoe, sIdx) => {
+      if (sIdx === shoeIndex) {
+        const removedMiles = shoe.logs[logIndex].miles;
+        const updatedLogs = shoe.logs.filter((_, lIdx) => lIdx !== logIndex);
+        return {
+          ...shoe,
+          miles: shoe.miles - removedMiles,
+          logs: updatedLogs,
+        };
+      }
+      return shoe;
+    });
+    setShoes(updatedShoes);
+    // If editing this log, cancel edit
+    if (
+      editingLog.shoeIndex === shoeIndex &&
+      editingLog.logIndex === logIndex
+    ) {
+      cancelEditLog();
+    }
+  }
+
+  const [confirmModal, setConfirmModal] = useState({
+    open: false,
+    type: null, // 'run' or 'shoe'
+    shoeIndex: null,
+    logIndex: null, // only for run
+  });
+
+  // Handler to open modal for deleting a run
+  function requestDeleteRun(shoeIndex, logIndex) {
+    setConfirmModal({ open: true, type: "run", shoeIndex, logIndex });
+  }
+  // Handler to open modal for deleting a shoe
+  function requestDeleteShoe(shoeIndex) {
+    setConfirmModal({ open: true, type: "shoe", shoeIndex, logIndex: null });
+  }
+  // Handler to actually delete after confirmation
+  function confirmDelete() {
+    if (confirmModal.type === "run") {
+      const { shoeIndex, logIndex } = confirmModal;
+      const updatedShoes = shoes.map((shoe, sIdx) => {
+        if (sIdx === shoeIndex) {
+          const removedMiles = shoe.logs[logIndex].miles;
+          const updatedLogs = shoe.logs.filter((_, lIdx) => lIdx !== logIndex);
+          return {
+            ...shoe,
+            miles: shoe.miles - removedMiles,
+            logs: updatedLogs,
+          };
+        }
+        return shoe;
+      });
+      setShoes(updatedShoes);
+      if (
+        editingLog.shoeIndex === shoeIndex &&
+        editingLog.logIndex === logIndex
+      ) {
+        cancelEditLog();
+      }
+    } else if (confirmModal.type === "shoe") {
+      const { shoeIndex } = confirmModal;
+      const updatedShoes = shoes.filter((_, idx) => idx !== shoeIndex);
+      setShoes(updatedShoes);
+      // If the deleted shoe was selected, clear selection
+      if (selectedIndex === shoeIndex) {
+        setSelectIndex(null);
+        setExpandedHistoryIndex(null);
+      } else if (selectedIndex > shoeIndex) {
+        setSelectIndex(selectedIndex - 1);
+      }
+    }
+    setConfirmModal({
+      open: false,
+      type: null,
+      shoeIndex: null,
+      logIndex: null,
+    });
+  }
+  function cancelDelete() {
+    setConfirmModal({
+      open: false,
+      type: null,
+      shoeIndex: null,
+      logIndex: null,
+    });
+  }
+
   return (
     <>
       <div style={{ padding: 20, maxWidth: 400, margin: "auto" }}>
-        <h1>Shoe Mileage Tracker</h1>
+        <h1 style={{ textAlign: "center" }}>Shoe Mileage Tracker</h1>
 
         {/* Add Shoe Form - Shows at top when no shoes, bottom when shoes exist */}
         {shoes.length === 0 ? (
@@ -118,6 +272,15 @@ function App() {
               onChange={(e) => setFirstRunDate(e.target.value)}
               style={{ width: "100%", marginBottom: 12, padding: 6 }}
             />
+            <input
+              type="number"
+              placeholder="Expected Lifecycle (miles)"
+              value={expectedLifecycle}
+              onChange={(e) => setExpectedLifecycle(e.target.value)}
+              min="0"
+              step="0.1"
+              style={{ width: "100%", marginBottom: 12, padding: 6 }}
+            />
             <button
               onClick={addShoe}
               style={{ padding: "8px 12px", marginBottom: 20 }}
@@ -128,7 +291,6 @@ function App() {
         ) : (
           <>
             {/* Lists all shoes */}
-            <h2>Shoes</h2>
             <ul style={{ paddingLeft: 0, listStyle: "none" }}>
               {shoes.map((shoe, index) => (
                 <li
@@ -141,6 +303,7 @@ function App() {
                     backgroundColor:
                       selectedIndex === index ? "#145A32" : "#3A3B3C",
                     borderRadius: 6,
+                    position: "relative",
                   }}
                 >
                   <div
@@ -156,29 +319,59 @@ function App() {
                       </strong>{" "}
                       - {shoe.color} <br />
                       First Run: {shoe.firstRunDate} <br />
-                      Total Mileage: {shoe.miles.toFixed(2)}
+                      Total Mileage: {shoe.miles.toFixed(2)} /{" "}
+                      {shoe.expectedLifecycle} miles <br />
+                      Life Remaining:{" "}
+                      {Math.max(
+                        0,
+                        100 - (shoe.miles / shoe.expectedLifecycle) * 100
+                      ).toFixed(1)}
+                      %
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setExpandedHistoryIndex(
-                          expandedHistoryIndex === index ? null : index
-                        );
-                      }}
-                      style={{
-                        padding: "4px 8px",
-                        fontSize: "0.9em",
-                        backgroundColor: "transparent",
-                        border: "1px solid #fff",
-                        color: "#fff",
-                        cursor: "pointer",
-                        borderRadius: "4px",
-                      }}
+                    <div
+                      style={{ display: "flex", alignItems: "center", gap: 8 }}
                     >
-                      {expandedHistoryIndex === index
-                        ? "Hide History"
-                        : "Show History"}
-                    </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedHistoryIndex(
+                            expandedHistoryIndex === index ? null : index
+                          );
+                        }}
+                        style={{
+                          padding: "4px 8px",
+                          fontSize: "0.9em",
+                          backgroundColor: "transparent",
+                          border: "1px solid #fff",
+                          color: "#fff",
+                          cursor: "pointer",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {expandedHistoryIndex === index
+                          ? "Hide History"
+                          : "Show History"}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          requestDeleteShoe(index);
+                        }}
+                        style={{
+                          color: "#fff",
+                          background: "#c0392b",
+                          border: "none",
+                          borderRadius: 3,
+                          padding: "2px 8px",
+                          cursor: "pointer",
+                          fontSize: "1.2em",
+                          lineHeight: 1,
+                        }}
+                        title="Delete shoe"
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
 
                   {expandedHistoryIndex === index && shoe.logs && (
@@ -209,27 +402,136 @@ function App() {
                             <th style={{ textAlign: "left", padding: "8px" }}>
                               Location
                             </th>
+                            <th
+                              style={{ textAlign: "left", padding: "8px" }}
+                            ></th>
                           </tr>
                         </thead>
                         <tbody>
-                          {shoe.logs.map((log, logIndex) => (
-                            <tr
-                              key={logIndex}
-                              style={{
-                                borderBottom:
-                                  "1px solid rgba(255, 255, 255, 0.1)",
-                                "&:last-child": { borderBottom: "none" },
-                              }}
-                            >
-                              <td style={{ padding: "8px" }}>{log.date}</td>
-                              <td style={{ padding: "8px" }}>
-                                {log.miles.toFixed(2)}
-                              </td>
-                              <td style={{ padding: "8px" }}>
-                                {log.location || "-"}
-                              </td>
-                            </tr>
-                          ))}
+                          {shoe.logs.map((log, logIndex) =>
+                            editingLog.shoeIndex === index &&
+                            editingLog.logIndex === logIndex ? (
+                              <>
+                                <tr key={logIndex + "-edit"}>
+                                  <td style={{ padding: "8px" }}>
+                                    <input
+                                      type="date"
+                                      value={editLogData.date}
+                                      onChange={(e) =>
+                                        setEditLogData({
+                                          ...editLogData,
+                                          date: e.target.value,
+                                        })
+                                      }
+                                      style={{ width: "100%" }}
+                                    />
+                                  </td>
+                                  <td style={{ padding: "8px" }}>
+                                    <input
+                                      type="number"
+                                      value={editLogData.miles}
+                                      onChange={(e) =>
+                                        setEditLogData({
+                                          ...editLogData,
+                                          miles: e.target.value,
+                                        })
+                                      }
+                                      min="0"
+                                      step="0.01"
+                                      style={{ width: "80px" }}
+                                    />
+                                  </td>
+                                  <td style={{ padding: "8px" }}>
+                                    <input
+                                      type="text"
+                                      value={editLogData.location}
+                                      onChange={(e) =>
+                                        setEditLogData({
+                                          ...editLogData,
+                                          location: e.target.value,
+                                        })
+                                      }
+                                      style={{ width: "100%" }}
+                                    />
+                                  </td>
+                                  <td style={{ padding: "8px" }}></td>
+                                </tr>
+                                <tr key={logIndex + "-edit-actions"}>
+                                  <td
+                                    colSpan={4}
+                                    style={{
+                                      textAlign: "center",
+                                      padding: "8px 0",
+                                    }}
+                                  >
+                                    <button
+                                      onClick={saveEditLog}
+                                      style={{
+                                        marginRight: 8,
+                                        padding: "6px 16px",
+                                      }}
+                                    >
+                                      Save
+                                    </button>
+                                    <button
+                                      onClick={cancelEditLog}
+                                      style={{ padding: "6px 16px" }}
+                                    >
+                                      Cancel
+                                    </button>
+                                  </td>
+                                </tr>
+                              </>
+                            ) : (
+                              <tr
+                                key={logIndex}
+                                style={{
+                                  borderBottom:
+                                    "1px solid rgba(255, 255, 255, 0.1)",
+                                  "&:last-child": { borderBottom: "none" },
+                                }}
+                              >
+                                <td style={{ padding: "8px" }}>{log.date}</td>
+                                <td style={{ padding: "8px" }}>
+                                  {log.miles.toFixed(2)}
+                                </td>
+                                <td style={{ padding: "8px" }}>
+                                  {log.location || "-"}
+                                </td>
+                                <td
+                                  style={{
+                                    padding: "8px",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  <button
+                                    onClick={() =>
+                                      startEditLog(index, logIndex)
+                                    }
+                                    style={{ marginRight: 4 }}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      requestDeleteRun(index, logIndex)
+                                    }
+                                    style={{
+                                      color: "#fff",
+                                      background: "#c0392b",
+                                      border: "none",
+                                      borderRadius: 3,
+                                      padding: "2px 8px",
+                                      cursor: "pointer",
+                                    }}
+                                    title="Delete run"
+                                  >
+                                    ×
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -251,11 +553,17 @@ function App() {
                   onChange={(e) => setMilesInput(e.target.value)}
                   step="0.1"
                   min="0"
-                  style={{ width: "100%", padding: 8, marginBottom: 10 }}
+                  style={{
+                    width: "80px",
+                    display: "block",
+                    padding: 8,
+                    marginBottom: 10,
+                  }}
                 />
                 <input
                   type="date"
                   value={runDate}
+                  style={{ display: "block", padding: 8, marginBottom: 10 }}
                   onChange={(e) => setRunDate(e.target.value)}
                 />
                 <input
@@ -263,6 +571,7 @@ function App() {
                   value={runLocation}
                   onChange={(e) => setRunLocation(e.target.value)}
                   placeholder="Where did you run?"
+                  style={{ display: "block", padding: 8, marginBottom: 10 }}
                 />
                 <button
                   onClick={addMiles}
@@ -297,26 +606,55 @@ function App() {
                   placeholder="Brand"
                   value={brand}
                   onChange={(e) => setBrand(e.target.value)}
-                  style={{ width: "100%", marginBottom: 6, padding: 6 }}
+                  style={{
+                    width: "40%",
+                    display: "block",
+                    marginBottom: 6,
+                    padding: 6,
+                  }}
                 />
                 <input
                   placeholder="Shoe Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  style={{ width: "100%", marginBottom: 6, padding: 6 }}
+                  style={{
+                    width: "40%",
+                    display: "block",
+                    marginBottom: 6,
+                    padding: 6,
+                  }}
                 />
                 <input
                   placeholder="Color"
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  style={{ width: "100%", marginBottom: 6, padding: 6 }}
+                  style={{
+                    width: "40%",
+                    display: "block",
+                    marginBottom: 6,
+                    padding: 6,
+                  }}
                 />
                 <input
                   type="date"
                   placeholder="First Run Date"
                   value={firstRunDate}
                   onChange={(e) => setFirstRunDate(e.target.value)}
-                  style={{ width: "100%", marginBottom: 12, padding: 6 }}
+                  style={{
+                    width: "40%",
+                    display: "block",
+                    marginBottom: 12,
+                    padding: 6,
+                  }}
+                />
+                <input
+                  type="number"
+                  placeholder="Expected Lifecycle (MI)"
+                  value={expectedLifecycle}
+                  onChange={(e) => setExpectedLifecycle(e.target.value)}
+                  min="0"
+                  step="0.1"
+                  style={{ width: "40%", marginBottom: 12, padding: 6 }}
                 />
                 <button
                   onClick={addShoe}
@@ -329,6 +667,75 @@ function App() {
           </>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal.open && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+          onClick={cancelDelete}
+        >
+          <div
+            style={{
+              background: "#222",
+              color: "#fff",
+              padding: 32,
+              borderRadius: 8,
+              minWidth: 300,
+              boxShadow: "0 2px 16px rgba(0,0,0,0.3)",
+              position: "relative",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ marginTop: 0 }}>
+              {confirmModal.type === "run" ? "Delete Run" : "Delete Shoe"}
+            </h3>
+            <p>
+              {confirmModal.type === "run"
+                ? "Are you sure you want to delete this run? This cannot be undone."
+                : "Are you sure you want to delete this shoe and all its run history? This cannot be undone."}
+            </p>
+            <div
+              style={{ display: "flex", justifyContent: "flex-end", gap: 12 }}
+            >
+              <button
+                onClick={cancelDelete}
+                style={{
+                  padding: "6px 16px",
+                  background: "#888",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 4,
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  padding: "6px 16px",
+                  background: "#c0392b",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 4,
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
