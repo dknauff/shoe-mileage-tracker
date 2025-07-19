@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { db } from "./firebase";
 import {
   collection,
@@ -8,6 +8,17 @@ import {
   deleteDoc,
   doc,
 } from "firebase/firestore";
+
+function formatDateMMDDYY(dateStr) {
+  if (!dateStr) return "";
+  // Use local time to avoid off-by-one errors
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d)) return dateStr;
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yy = String(d.getFullYear()).slice(-2);
+  return `${mm}/${dd}/${yy}`;
+}
 
 function App() {
   // array of shoe objects
@@ -34,6 +45,12 @@ function App() {
 
   // Add state for custom alert modal
   const [alertModal, setAlertModal] = useState({ open: false, message: "" });
+
+  // Add state for showing date pickers
+  const [showAddShoeDatePicker, setShowAddShoeDatePicker] = useState(false);
+  const [showAddMilesDatePicker, setShowAddMilesDatePicker] = useState(false);
+  const addShoeDateBtnRef = useRef(null);
+  const addMilesDateBtnRef = useRef(null);
 
   function showAlert(message) {
     setAlertModal({ open: true, message });
@@ -330,6 +347,28 @@ function App() {
     });
   }
 
+  // Helper for closing popover on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (
+        showAddShoeDatePicker &&
+        addShoeDateBtnRef.current &&
+        !addShoeDateBtnRef.current.contains(e.target)
+      ) {
+        setShowAddShoeDatePicker(false);
+      }
+      if (
+        showAddMilesDatePicker &&
+        addMilesDateBtnRef.current &&
+        !addMilesDateBtnRef.current.contains(e.target)
+      ) {
+        setShowAddMilesDatePicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showAddShoeDatePicker, showAddMilesDatePicker]);
+
   return (
     <>
       <div
@@ -354,11 +393,57 @@ function App() {
             padding: "16px 0 8px 0",
             textAlign: "center",
             borderBottom: "1px solid #333",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          <h1 style={{ margin: 0, fontSize: 28, letterSpacing: 1 }}>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: 28,
+              letterSpacing: 1,
+              textAlign: "left",
+              marginLeft: 28,
+            }}
+          >
             Shoe Mileage Tracker
           </h1>
+          {shoes.length > 0 && (
+            <button
+              onClick={() => setShowAddShoeForm((prev) => !prev)}
+              style={{
+                marginLeft: 12,
+                marginRight: 28,
+                background: "none",
+                border: "none",
+                color: "#1abc9c",
+                fontSize: 32,
+                fontWeight: 700,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
+                lineHeight: 1,
+                transition: "color 0.2s",
+              }}
+              title={showAddShoeForm ? "Close Add Shoe" : "Add New Shoe"}
+              aria-label={showAddShoeForm ? "Close Add Shoe" : "Add New Shoe"}
+            >
+              <span
+                style={{
+                  fontSize: 32,
+                  fontWeight: 700,
+                  display: "inline-block",
+                  lineHeight: 1,
+                  marginTop: -2,
+                }}
+              >
+                {showAddShoeForm ? "-" : "+"}
+              </span>
+            </button>
+          )}
         </div>
 
         <div
@@ -453,6 +538,9 @@ function App() {
                     background: "#181818",
                     color: "#fff",
                     boxSizing: "border-box",
+                    lineHeight: 1.2,
+                    height: 44,
+                    verticalAlign: "middle",
                   }}
                 />
                 <input
@@ -548,7 +636,8 @@ function App() {
                         </span>{" "}
                         <br />
                         <span style={{ fontSize: 14 }}>
-                          First Run: {shoe.firstRunDate} <br />
+                          First Run: {formatDateMMDDYY(shoe.firstRunDate)}{" "}
+                          <br />
                           <span style={{ color: "#1abc9c" }}>
                             {shoe.miles.toFixed(2)} / {shoe.expectedLifecycle}{" "}
                             mi
@@ -669,6 +758,9 @@ function App() {
                             width: "100%",
                             borderCollapse: "collapse",
                             fontSize: 15,
+                            maxWidth: "100vw",
+                            tableLayout: "fixed",
+                            wordBreak: "break-word",
                           }}
                         >
                           <thead>
@@ -698,72 +790,150 @@ function App() {
                               editingLog.logIndex === logIndex ? (
                                 <>
                                   <tr key={logIndex + "-edit"}>
-                                    <td style={{ padding: "8px" }}>
-                                      <input
-                                        type="date"
-                                        value={editLogData.date}
-                                        onChange={(e) =>
-                                          setEditLogData({
-                                            ...editLogData,
-                                            date: e.target.value,
-                                          })
-                                        }
-                                        style={{ width: "100%" }}
-                                      />
+                                    <td
+                                      colSpan={4}
+                                      style={{ padding: "8px 0" }}
+                                    >
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          flexDirection: "row",
+                                          gap: 8,
+                                          width: "100%",
+                                          flexWrap: "wrap",
+                                          justifyContent: "center",
+                                        }}
+                                      >
+                                        <input
+                                          type="date"
+                                          value={editLogData.date}
+                                          onChange={(e) =>
+                                            setEditLogData({
+                                              ...editLogData,
+                                              date: e.target.value,
+                                            })
+                                          }
+                                          style={{
+                                            flex: 1,
+                                            minWidth: 90,
+                                            maxWidth: 140,
+                                            padding: "0 10px",
+                                            fontSize: 16,
+                                            borderRadius: 8,
+                                            border: "1px solid #444",
+                                            background: "#181818",
+                                            color: "#fff",
+                                            height: 36,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            boxSizing: "border-box",
+                                          }}
+                                        />
+                                        <input
+                                          type="number"
+                                          value={editLogData.miles}
+                                          onChange={(e) =>
+                                            setEditLogData({
+                                              ...editLogData,
+                                              miles: e.target.value,
+                                            })
+                                          }
+                                          min="0"
+                                          step="0.01"
+                                          style={{
+                                            flex: 1,
+                                            minWidth: 70,
+                                            maxWidth: 100,
+                                            padding: "0 10px",
+                                            fontSize: 16,
+                                            borderRadius: 8,
+                                            border: "1px solid #444",
+                                            background: "#181818",
+                                            color: "#fff",
+                                            height: 36,
+                                            boxSizing: "border-box",
+                                          }}
+                                        />
+                                        <input
+                                          type="text"
+                                          value={editLogData.location}
+                                          onChange={(e) =>
+                                            setEditLogData({
+                                              ...editLogData,
+                                              location: e.target.value,
+                                            })
+                                          }
+                                          style={{
+                                            flex: 2,
+                                            minWidth: 90,
+                                            maxWidth: 180,
+                                            padding: "0 10px",
+                                            fontSize: 16,
+                                            borderRadius: 8,
+                                            border: "1px solid #444",
+                                            background: "#181818",
+                                            color: "#fff",
+                                            height: 36,
+                                            boxSizing: "border-box",
+                                          }}
+                                        />
+                                      </div>
                                     </td>
-                                    <td style={{ padding: "8px" }}>
-                                      <input
-                                        type="number"
-                                        value={editLogData.miles}
-                                        onChange={(e) =>
-                                          setEditLogData({
-                                            ...editLogData,
-                                            miles: e.target.value,
-                                          })
-                                        }
-                                        min="0"
-                                        step="0.01"
-                                        style={{ width: "80px" }}
-                                      />
-                                    </td>
-                                    <td style={{ padding: "8px" }}>
-                                      <input
-                                        type="text"
-                                        value={editLogData.location}
-                                        onChange={(e) =>
-                                          setEditLogData({
-                                            ...editLogData,
-                                            location: e.target.value,
-                                          })
-                                        }
-                                        style={{ width: "100%" }}
-                                      />
-                                    </td>
-                                    <td style={{ padding: "8px" }}></td>
                                   </tr>
                                   <tr key={logIndex + "-edit-actions"}>
                                     <td
                                       colSpan={4}
                                       style={{
                                         textAlign: "center",
-                                        padding: "8px 0",
+                                        padding: "4px 0 0 0",
                                       }}
                                     >
-                                      <button
-                                        onClick={saveEditLog}
+                                      <div
                                         style={{
-                                          marginRight: 8,
-                                          padding: "6px 16px",
+                                          display: "flex",
+                                          justifyContent: "center",
+                                          alignItems: "center",
+                                          gap: 8,
+                                          flexWrap: "wrap",
                                         }}
                                       >
-                                        Save
-                                      </button>
-                                      <button
-                                        onClick={cancelEditLog}
-                                        style={{ padding: "6px 16px" }}
-                                      >
-                                        Cancel
-                                      </button>
+                                        <button
+                                          onClick={saveEditLog}
+                                          style={{
+                                            marginRight: 0,
+                                            padding: "8px 20px",
+                                            background: "#1abc9c",
+                                            color: "#fff",
+                                            border: "none",
+                                            borderRadius: 8,
+                                            fontWeight: 600,
+                                            fontSize: 16,
+                                            boxShadow: "0 1px 4px #1abc9c33",
+                                            cursor: "pointer",
+                                            letterSpacing: 1,
+                                          }}
+                                        >
+                                          Save
+                                        </button>
+                                        <button
+                                          onClick={cancelEditLog}
+                                          style={{
+                                            padding: "8px 20px",
+                                            background: "#313a3e",
+                                            color: "#b8f6e4",
+                                            border: "none",
+                                            borderRadius: 8,
+                                            fontWeight: 600,
+                                            fontSize: 16,
+                                            boxShadow: "0 1px 4px #2228",
+                                            letterSpacing: 1,
+                                            cursor: "pointer",
+                                          }}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
                                     </td>
                                   </tr>
                                 </>
@@ -774,9 +944,13 @@ function App() {
                                     borderBottom:
                                       "1px solid rgba(255, 255, 255, 0.1)",
                                     "&:last-child": { borderBottom: "none" },
+                                    maxWidth: 600,
+                                    width: "100%",
                                   }}
                                 >
-                                  <td style={{ padding: "8px" }}>{log.date}</td>
+                                  <td style={{ padding: "8px" }}>
+                                    {formatDateMMDDYY(log.date)}
+                                  </td>
                                   <td style={{ padding: "8px" }}>
                                     {log.miles.toFixed(2)}
                                   </td>
@@ -787,13 +961,30 @@ function App() {
                                     style={{
                                       padding: "8px",
                                       whiteSpace: "nowrap",
+                                      display: "flex",
+                                      justifyContent: "center",
+                                      alignItems: "center",
+                                      gap: 8,
+                                      flexWrap: "wrap",
                                     }}
                                   >
                                     <button
                                       onClick={() =>
                                         startEditLog(index, logIndex)
                                       }
-                                      style={{ marginRight: 4 }}
+                                      style={{
+                                        marginRight: 4,
+                                        padding: "6px 16px",
+                                        background: "#1abc9c",
+                                        color: "#fff",
+                                        border: "none",
+                                        borderRadius: 8,
+                                        fontWeight: 600,
+                                        fontSize: 15,
+                                        boxShadow: "0 1px 4px #1abc9c33",
+                                        cursor: "pointer",
+                                        letterSpacing: 1,
+                                      }}
                                     >
                                       Edit
                                     </button>
@@ -805,9 +996,16 @@ function App() {
                                         color: "#fff",
                                         background: "#c0392b",
                                         border: "none",
-                                        borderRadius: 3,
-                                        padding: "2px 8px",
+                                        borderRadius: "50%",
+                                        padding: 8,
                                         cursor: "pointer",
+                                        fontSize: "1.2em",
+                                        lineHeight: 1,
+                                        width: 36,
+                                        height: 36,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
                                       }}
                                       title="Delete run"
                                     >
@@ -844,7 +1042,7 @@ function App() {
                       textAlign: "center",
                     }}
                   >
-                    Add miles for {selectedShoes.brand} {selectedShoes.name}
+                    Add Miles - {selectedShoes.brand} {selectedShoes.name}
                   </h2>
                   <input
                     type="number"
@@ -866,22 +1064,6 @@ function App() {
                     }}
                   />
                   <input
-                    type="date"
-                    value={runDate}
-                    style={{
-                      width: "100%",
-                      display: "block",
-                      padding: 12,
-                      marginBottom: 12,
-                      fontSize: 18,
-                      borderRadius: 8,
-                      border: "1px solid #444",
-                      background: "#181818",
-                      color: "#fff",
-                    }}
-                    onChange={(e) => setRunDate(e.target.value)}
-                  />
-                  <input
                     type="text"
                     value={runLocation}
                     onChange={(e) => setRunLocation(e.target.value)}
@@ -898,249 +1080,418 @@ function App() {
                       color: "#fff",
                     }}
                   />
-                  <button
-                    onClick={addMiles}
+                  <div
                     style={{
-                      width: "100%",
-                      padding: "14px 0",
-                      fontSize: 20,
-                      background: "#313a3e", // Muted dark blue-gray
-                      color: "#b8f6e4", // Muted teal accent
-                      border: "none",
-                      borderRadius: 8,
-                      fontWeight: 600,
-                      marginTop: 8,
-                      marginBottom: 0,
-                      boxShadow: "0 2px 8px #2228",
-                      letterSpacing: 1,
-                      transition: "background 0.2s",
+                      display: "flex",
+                      gap: 8,
+                      alignItems: "center",
+                      marginTop: 16,
                     }}
                   >
-                    <span
+                    <button
+                      ref={addMilesDateBtnRef}
+                      type="button"
+                      className="date-picker-btn"
                       style={{
-                        fontSize: 22,
-                        marginRight: 8,
-                        verticalAlign: "middle",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        background: "#181818",
+                        color: "#fff",
+                        border: "1px solid #444",
+                        borderRadius: 8,
+                        padding: "10px 16px",
+                        fontSize: 16,
+                        cursor: "pointer",
+                        position: "relative",
                       }}
+                      onClick={() => setShowAddMilesDatePicker((v) => !v)}
                     >
-                      ➕
-                    </span>{" "}
-                    Add Miles
-                  </button>
+                      <span
+                        style={{ display: "inline-flex", alignItems: "center" }}
+                        aria-label="calendar"
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <rect
+                            x="3"
+                            y="5"
+                            width="14"
+                            height="12"
+                            rx="2"
+                            stroke="#fff"
+                            strokeWidth="1.5"
+                            fill="none"
+                          />
+                          <rect
+                            x="7"
+                            y="9"
+                            width="2"
+                            height="2"
+                            rx="0.5"
+                            fill="#fff"
+                          />
+                          <rect
+                            x="11"
+                            y="9"
+                            width="2"
+                            height="2"
+                            rx="0.5"
+                            fill="#fff"
+                          />
+                          <rect
+                            x="7"
+                            y="13"
+                            width="2"
+                            height="2"
+                            rx="0.5"
+                            fill="#fff"
+                          />
+                          <rect
+                            x="11"
+                            y="13"
+                            width="2"
+                            height="2"
+                            rx="0.5"
+                            fill="#fff"
+                          />
+                          <rect
+                            x="1"
+                            y="3"
+                            width="18"
+                            height="2"
+                            rx="1"
+                            fill="#fff"
+                            fillOpacity="0.2"
+                          />
+                        </svg>
+                      </span>
+                      {!showAddMilesDatePicker && formatDateMMDDYY(runDate)}
+                      {showAddMilesDatePicker && (
+                        <span
+                          style={{
+                            position: "absolute",
+                            left: 0,
+                            top: "110%",
+                            zIndex: 10,
+                            background: "#222",
+                            padding: 8,
+                            borderRadius: 8,
+                            boxShadow: "0 2px 8px #0008",
+                          }}
+                        >
+                          <input
+                            type="date"
+                            value={runDate}
+                            onChange={(e) => {
+                              setRunDate(e.target.value);
+                              setShowAddMilesDatePicker(false);
+                            }}
+                            style={{
+                              background: "#181818",
+                              color: "#fff",
+                              border: "1px solid #444",
+                              borderRadius: 6,
+                              fontSize: 16,
+                              padding: 6,
+                            }}
+                            autoFocus
+                          />
+                        </span>
+                      )}
+                    </button>
+                    <button onClick={addMiles} style={{ flex: 0 }}>
+                      <span
+                        style={{
+                          fontSize: 22,
+                          verticalAlign: "middle",
+                          marginLeft: "auto",
+                        }}
+                      >
+                        ➕
+                      </span>
+                      {""}
+                    </button>
+                  </div>
                 </div>
               )}
 
-              {/* Add Shoe Form - Only shown when shoes exist */}
+              {/* Add Shoe Modal Popup */}
               {showAddShoeForm && (
                 <div
                   style={{
-                    background: "#222",
-                    borderRadius: 12,
-                    boxShadow: "0 1px 4px #0002",
-                    padding: 16,
-                    marginTop: 18,
-                    marginBottom: 80,
-                    position: "relative",
+                    position: "fixed",
+                    top: 0,
+                    left: 0,
+                    width: "100vw",
+                    height: "100vh",
+                    background: "rgba(0,0,0,0.4)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    zIndex: 2000,
                   }}
+                  onClick={() => setShowAddShoeForm(false)}
                 >
-                  {/* Close button */}
-                  <button
-                    onClick={() => setShowAddShoeForm(false)}
+                  <div
                     style={{
-                      position: "absolute",
-                      top: 10,
-                      right: 10,
-                      background: "none",
-                      border: "none",
-                      color: "#aaa",
-                      fontSize: 26,
-                      cursor: "pointer",
-                      borderRadius: "50%",
-                      width: 36,
-                      height: 36,
+                      background: "#222",
+                      borderRadius: 12,
+                      boxShadow: "0 2px 16px #0008",
+                      padding: 24,
+                      minWidth: 280,
+                      maxWidth: 350,
+                      width: "90vw",
+                      position: "relative",
+                      color: "#fff",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      justifyContent: "center",
-                      transition: "background 0.2s",
                     }}
-                    title="Close"
-                    aria-label="Close add shoe form"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    ×
-                  </button>
-                  <h2
-                    style={{
-                      fontSize: 20,
-                      margin: "0 0 12px 0",
-                      textAlign: "center",
-                    }}
-                  >
-                    Add New Shoe
-                  </h2>
-                  <input
-                    placeholder="Brand"
-                    value={brand}
-                    onChange={(e) => setBrand(e.target.value)}
-                    style={{
-                      width: "100%",
-                      display: "block",
-                      marginBottom: 10,
-                      padding: 12,
-                      fontSize: 18,
-                      borderRadius: 8,
-                      border: "1px solid #444",
-                      background: "#181818",
-                      color: "#fff",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                  <input
-                    placeholder="Shoe Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    style={{
-                      width: "100%",
-                      display: "block",
-                      marginBottom: 10,
-                      padding: 12,
-                      fontSize: 18,
-                      borderRadius: 8,
-                      border: "1px solid #444",
-                      background: "#181818",
-                      color: "#fff",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                  <input
-                    placeholder="Color"
-                    value={color}
-                    onChange={(e) => setColor(e.target.value)}
-                    style={{
-                      width: "100%",
-                      display: "block",
-                      marginBottom: 10,
-                      padding: 12,
-                      fontSize: 18,
-                      borderRadius: 8,
-                      border: "1px solid #444",
-                      background: "#181818",
-                      color: "#fff",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                  <input
-                    type="date"
-                    placeholder="First Run Date"
-                    value={firstRunDate}
-                    onChange={(e) => setFirstRunDate(e.target.value)}
-                    style={{
-                      width: "100%",
-                      display: "block",
-                      marginBottom: 10,
-                      padding: 12,
-                      fontSize: 18,
-                      borderRadius: 8,
-                      border: "1px solid #444",
-                      background: "#181818",
-                      color: "#fff",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Expected Lifecycle (MI)"
-                    value={expectedLifecycle}
-                    onChange={(e) => setExpectedLifecycle(e.target.value)}
-                    min="0"
-                    step="0.1"
-                    style={{
-                      width: "100%",
-                      display: "block",
-                      marginBottom: 16,
-                      padding: 12,
-                      fontSize: 18,
-                      borderRadius: 8,
-                      border: "1px solid #444",
-                      background: "#181818",
-                      color: "#fff",
-                      boxSizing: "border-box",
-                    }}
-                  />
-                  <button
-                    onClick={addShoe}
-                    style={{
-                      width: "100%",
-                      padding: "14px 0",
-                      fontSize: 20,
-                      background: "#313a3e", // Muted dark blue-gray
-                      color: "#b8f6e4", // Muted teal accent
-                      border: "none",
-                      borderRadius: 8,
-                      fontWeight: 600,
-                      marginTop: 8,
-                      marginBottom: 0,
-                      boxShadow: "0 2px 8px #2228",
-                      letterSpacing: 1,
-                      transition: "background 0.2s",
-                    }}
-                  >
-                    <span
+                    <h2
                       style={{
-                        fontSize: 22,
-                        marginRight: 8,
-                        verticalAlign: "middle",
+                        fontSize: 20,
+                        margin: "0 0 18px 0",
+                        textAlign: "center",
                       }}
                     >
-                      ➕
-                    </span>{" "}
-                    Add Shoe
-                  </button>
+                      Add New Shoe
+                    </h2>
+                    <input
+                      placeholder="Brand"
+                      value={brand}
+                      onChange={(e) => setBrand(e.target.value)}
+                      style={{
+                        width: "100%",
+                        display: "block",
+                        marginBottom: 10,
+                        padding: 12,
+                        fontSize: 18,
+                        borderRadius: 8,
+                        border: "1px solid #444",
+                        background: "#181818",
+                        color: "#fff",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <input
+                      placeholder="Shoe Name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      style={{
+                        width: "100%",
+                        display: "block",
+                        marginBottom: 10,
+                        padding: 12,
+                        fontSize: 18,
+                        borderRadius: 8,
+                        border: "1px solid #444",
+                        background: "#181818",
+                        color: "#fff",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <input
+                      placeholder="Color"
+                      value={color}
+                      onChange={(e) => setColor(e.target.value)}
+                      style={{
+                        width: "100%",
+                        display: "block",
+                        marginBottom: 10,
+                        padding: 12,
+                        fontSize: 18,
+                        borderRadius: 8,
+                        border: "1px solid #444",
+                        background: "#181818",
+                        color: "#fff",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <input
+                      type="number"
+                      placeholder="Expected Lifecycle (MI)"
+                      value={expectedLifecycle}
+                      onChange={(e) => setExpectedLifecycle(e.target.value)}
+                      min="0"
+                      step="0.1"
+                      style={{
+                        width: "100%",
+                        display: "block",
+                        marginBottom: 16,
+                        padding: 12,
+                        fontSize: 18,
+                        borderRadius: 8,
+                        border: "1px solid #444",
+                        background: "#181818",
+                        color: "#fff",
+                        boxSizing: "border-box",
+                      }}
+                    />
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                        marginTop: 16,
+                        justifyContent: "flex-end",
+                      }}
+                    >
+                      <button
+                        ref={addShoeDateBtnRef}
+                        type="button"
+                        className="date-picker-btn"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          padding: "10px 16px",
+                          fontSize: 16,
+                          cursor: "pointer",
+                          position: "relative",
+                          background: "#f5f5f5",
+                          color: "#222",
+                          border: "1px solid #e0e0e0",
+                          borderRadius: 8,
+                        }}
+                        onClick={() => setShowAddShoeDatePicker((v) => !v)}
+                      >
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                          }}
+                          aria-label="calendar"
+                        >
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <rect
+                              x="3"
+                              y="5"
+                              width="14"
+                              height="12"
+                              rx="2"
+                              stroke="#222"
+                              strokeWidth="1.5"
+                              fill="none"
+                            />
+                            <rect
+                              x="7"
+                              y="9"
+                              width="2"
+                              height="2"
+                              rx="0.5"
+                              fill="#222"
+                            />
+                            <rect
+                              x="11"
+                              y="9"
+                              width="2"
+                              height="2"
+                              rx="0.5"
+                              fill="#222"
+                            />
+                            <rect
+                              x="7"
+                              y="13"
+                              width="2"
+                              height="2"
+                              rx="0.5"
+                              fill="#222"
+                            />
+                            <rect
+                              x="11"
+                              y="13"
+                              width="2"
+                              height="2"
+                              rx="0.5"
+                              fill="#222"
+                            />
+                            <rect
+                              x="1"
+                              y="3"
+                              width="18"
+                              height="2"
+                              rx="1"
+                              fill="#222"
+                              fillOpacity="0.2"
+                            />
+                          </svg>
+                        </span>
+                        {!showAddShoeDatePicker &&
+                          formatDateMMDDYY(firstRunDate)}
+                        {showAddShoeDatePicker && (
+                          <span
+                            style={{
+                              position: "absolute",
+                              left: 0,
+                              top: "110%",
+                              zIndex: 10,
+                              background: "#222",
+                              padding: 8,
+                              borderRadius: 8,
+                              boxShadow: "0 2px 8px #0008",
+                            }}
+                          >
+                            <input
+                              type="date"
+                              value={firstRunDate}
+                              onChange={(e) => {
+                                setFirstRunDate(e.target.value);
+                                setShowAddShoeDatePicker(false);
+                              }}
+                              style={{
+                                background: "#181818",
+                                color: "#fff",
+                                border: "1px solid #444",
+                                borderRadius: 6,
+                                fontSize: 16,
+                                padding: 6,
+                              }}
+                              autoFocus
+                            />
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        onClick={addShoe}
+                        className="add-shoe-btn"
+                        style={{
+                          fontSize: 17,
+                          padding: "10px 0",
+                          minWidth: 110,
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: 20,
+                            marginRight: 8,
+                            verticalAlign: "middle",
+                          }}
+                        >
+                          ➕
+                        </span>
+                        {""}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </>
           )}
         </div>
-
-        {/* Floating Add Shoe Button */}
-        {shoes.length > 0 && !showAddShoeForm && (
-          <button
-            onClick={() => setShowAddShoeForm(true)}
-            style={{
-              position: "fixed",
-              right: 18,
-              bottom: 18,
-              width: 48,
-              height: 48,
-              borderRadius: "50%",
-              background: "#313a3e", // Muted dark blue-gray
-              color: "#b8f6e4", // Muted teal accent
-              fontSize: 28,
-              border: "none",
-              boxShadow: "0 2px 8px #2228",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 100,
-              cursor: "pointer",
-              transition: "background 0.2s",
-            }}
-            title="Add New Shoe"
-            aria-label="Add New Shoe"
-          >
-            <span
-              style={{
-                display: "block",
-                width: 28,
-                height: 28,
-                lineHeight: "28px",
-                textAlign: "center",
-                fontWeight: 600,
-              }}
-            >
-              +
-            </span>
-          </button>
-        )}
 
         {/* Confirmation Modal */}
         {confirmModal.open && (

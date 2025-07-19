@@ -40,3 +40,22 @@
 .read-the-docs {
   color: #888;
 }
+
+.add-miles-btn {
+  width: 100%;
+  padding: 14px 0;
+  font-size: 20px;
+  background: #222;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-top: 8px;
+  margin-bottom: 0;
+  box-shadow: 0 2px 8px #2228;
+  letter-spacing: 1px;
+  transition: background 0.2s;
+}
+.add-miles-btn:hover {
+  background: #313a3e;
+}
