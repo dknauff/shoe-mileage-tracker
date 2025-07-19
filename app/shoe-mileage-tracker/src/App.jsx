@@ -1,4 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "./firebase";
+import EmailLogin from "./EmailLogin";
 import { db } from "./firebase";
 import {
   collection,
@@ -369,6 +372,25 @@ function App() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [showAddShoeDatePicker, showAddMilesDatePicker]);
 
+  // Add authentication state
+  const [currentUser, setCurrentUser] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setLoadingAuth(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (loadingAuth) {
+    return null; // or a loading spinner if you want
+  }
+  if (!currentUser) {
+    return <EmailLogin />;
+  }
+
   return (
     <>
       <div
@@ -405,16 +427,15 @@ function App() {
               letterSpacing: 1,
               textAlign: "left",
               marginLeft: 28,
+              flex: 1,
             }}
           >
-            Shoe Mileage Tracker
+            Shoe Tracker
           </h1>
           {shoes.length > 0 && (
             <button
               onClick={() => setShowAddShoeForm((prev) => !prev)}
               style={{
-                marginLeft: 12,
-                marginRight: 28,
                 background: "none",
                 border: "none",
                 color: "#1abc9c",
@@ -427,6 +448,7 @@ function App() {
                 padding: 0,
                 lineHeight: 1,
                 transition: "color 0.2s",
+                marginRight: 20,
               }}
               title={showAddShoeForm ? "Close Add Shoe" : "Add New Shoe"}
               aria-label={showAddShoeForm ? "Close Add Shoe" : "Add New Shoe"}
@@ -444,6 +466,40 @@ function App() {
               </span>
             </button>
           )}
+          <button
+            onClick={() => signOut(auth)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#e74c3c",
+              fontSize: 24,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 8,
+              borderRadius: "50%",
+              transition: "background-color 0.2s",
+              marginRight: 28,
+            }}
+            title="Sign Out"
+            aria-label="Sign Out"
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16,17 21,12 16,7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
 
         <div
@@ -1620,5 +1676,4 @@ function App() {
     </>
   );
 }
-
 export default App;
