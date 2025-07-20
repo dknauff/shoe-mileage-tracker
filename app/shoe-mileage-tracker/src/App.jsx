@@ -23,6 +23,91 @@ function formatDateMMDDYY(dateStr) {
   return `${mm}/${dd}/${yy}`;
 }
 
+function getShoeColorTheme(shoeColor) {
+  if (!shoeColor)
+    return { bg: "#4B5563", border: "#6B7280", shadow: "#4B556340" };
+
+  const color = shoeColor.toLowerCase().trim();
+
+  // Color mapping for dark theme
+  const colorMap = {
+    red: {
+      bg: "#7F1D1D", // dark red
+      border: "#991B1B", // muted, slightly brighter red
+      shadow: "#7F1D1D40", // same bg with soft shadow
+    },
+    blue: {
+      bg: "#1E3A8A",
+      border: "#1D4ED8",
+      shadow: "#1E3A8A40",
+    },
+    green: {
+      bg: "#065F46",
+      border: "#047857",
+      shadow: "#065F4640",
+    },
+    yellow: {
+      bg: "#78350F",
+      border: "#B45309",
+      shadow: "#78350F40",
+    },
+    white: {
+      bg: "#6B7280",
+      border: "#9CA3AF",
+      shadow: "#6B728040",
+    },
+    gray: {
+      bg: "#4B5563",
+      border: "#6B7280",
+      shadow: "#4B556340",
+    },
+    black: {
+      bg: "#1F2937",
+      border: "#374151",
+      shadow: "#1F293740",
+    },
+    purple: {
+      bg: "#5B21B6",
+      border: "#6D28D9",
+      shadow: "#5B21B640",
+    },
+  };
+
+  // Check for exact matches first
+  if (colorMap[color]) {
+    return colorMap[color];
+  }
+
+  // Check for partial matches
+  for (const [key, value] of Object.entries(colorMap)) {
+    if (color.includes(key)) {
+      return value;
+    }
+  }
+
+  // Default to gray if no match found
+  return colorMap.gray;
+}
+
+function getLifeRemainingColor(percentage) {
+  // Gradient from green (#2ecc71) at 100% to yellow (#f1c40f) at 50% to red (#e74c3c) at 0%
+  if (percentage >= 50) {
+    // Green to Yellow gradient (50% to 100%)
+    const ratio = (percentage - 50) / 50; // 0 to 1
+    const r = Math.round(46 + (241 - 46) * ratio); // 46 to 241
+    const g = Math.round(204 + (196 - 204) * ratio); // 204 to 196
+    const b = Math.round(113 + (15 - 113) * ratio); // 113 to 15
+    return `rgb(${r}, ${g}, ${b})`;
+  } else {
+    // Yellow to Red gradient (0% to 50%)
+    const ratio = percentage / 50; // 0 to 1
+    const r = Math.round(231 + (241 - 231) * ratio); // 231 to 241
+    const g = Math.round(76 + (196 - 76) * ratio); // 76 to 196
+    const b = Math.round(60 + (15 - 60) * ratio); // 60 to 15
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+}
+
 function App() {
   // array of shoe objects
   const [shoes, setShoes] = useState([]);
@@ -44,6 +129,7 @@ function App() {
     () => new Date().toISOString().split("T")[0]
   );
   const [runLocation, setRunLocation] = useState("");
+  const [runZone, setRunZone] = useState("");
   const [showAddShoeForm, setShowAddShoeForm] = useState(true);
 
   // Add state for custom alert modal
@@ -160,6 +246,7 @@ function App() {
       miles: parsed,
       date: runDate,
       location: runLocation,
+      zone: runZone,
     });
     const updatedShoe = {
       ...shoe,
@@ -174,6 +261,7 @@ function App() {
       setMilesInput("");
       setRunDate(new Date().toISOString().split("T")[0]); // Reset to today
       setRunLocation("");
+      setRunZone("");
     } catch (err) {
       console.error("Error adding miles:", err);
       showAlert("Failed to add miles. See console for details.");
@@ -190,6 +278,7 @@ function App() {
     miles: "",
     date: "",
     location: "",
+    zone: "",
   });
 
   // Handler to start editing a log
@@ -200,13 +289,14 @@ function App() {
       miles: log.miles.toString(),
       date: log.date,
       location: log.location || "",
+      zone: log.zone || "",
     });
   }
 
   // Handler to cancel editing
   function cancelEditLog() {
     setEditingLog({ shoeIndex: null, logIndex: null });
-    setEditLogData({ miles: "", date: "", location: "" });
+    setEditLogData({ miles: "", date: "", location: "", zone: "" });
   }
 
   // Handler to save edited log
@@ -226,6 +316,7 @@ function App() {
             miles: parsedMiles,
             date: editLogData.date,
             location: editLogData.location,
+            zone: editLogData.zone,
           }
         : log
     );
@@ -400,7 +491,7 @@ function App() {
           minHeight: "100vh",
           background: "#222",
           color: "#fff",
-          fontFamily: "system-ui, sans-serif",
+          fontFamily: "'Oswald', system-ui, sans-serif",
           position: "relative",
           boxSizing: "border-box",
         }}
@@ -542,6 +633,7 @@ function App() {
                     background: "#181818",
                     color: "#fff",
                     boxSizing: "border-box",
+                    fontFamily: "'Oswald', system-ui, sans-serif",
                   }}
                 />
                 <input
@@ -559,6 +651,7 @@ function App() {
                     background: "#181818",
                     color: "#fff",
                     boxSizing: "border-box",
+                    fontFamily: "'Oswald', system-ui, sans-serif",
                   }}
                 />
                 <input
@@ -576,6 +669,7 @@ function App() {
                     background: "#181818",
                     color: "#fff",
                     boxSizing: "border-box",
+                    fontFamily: "'Oswald', system-ui, sans-serif",
                   }}
                 />
                 <input
@@ -597,6 +691,7 @@ function App() {
                     lineHeight: 1.2,
                     height: 44,
                     verticalAlign: "middle",
+                    fontFamily: "'Oswald', system-ui, sans-serif",
                   }}
                 />
                 <input
@@ -617,6 +712,7 @@ function App() {
                     background: "#181818",
                     color: "#fff",
                     boxSizing: "border-box",
+                    fontFamily: "'Oswald', system-ui, sans-serif",
                   }}
                 />
                 <button
@@ -633,6 +729,9 @@ function App() {
                     marginTop: 8,
                     marginBottom: 0,
                     boxShadow: "0 2px 8px #1abc9c33",
+                    userSelect: "none",
+                    outline: "none",
+                    WebkitTapHighlightColor: "transparent",
                   }}
                 >
                   <span
@@ -655,24 +754,34 @@ function App() {
                 {shoes.map((shoe, index) => (
                   <li
                     key={index}
-                    onClick={() => setSelectIndex(index)}
+                    onClick={() => {
+                      setSelectIndex(index);
+                      setExpandedHistoryIndex(null); // Close run log view when switching shoes
+                    }}
                     style={{
                       marginBottom: 14,
                       borderRadius: 12,
                       background:
-                        selectedIndex === index ? "#145A32" : "#292929",
+                        selectedIndex === index
+                          ? getShoeColorTheme(shoe.color).bg
+                          : "#292929",
                       boxShadow:
                         selectedIndex === index
-                          ? "0 2px 8px #145A3240"
+                          ? `0 4px 12px ${
+                              getShoeColorTheme(shoe.color).shadow
+                            }, 0 0 0 1px ${
+                              getShoeColorTheme(shoe.color).border
+                            }`
                           : "0 1px 4px #0002",
                       padding: 16,
                       cursor: "pointer",
                       position: "relative",
                       border:
                         selectedIndex === index
-                          ? "2px solid #1abc9c"
+                          ? `2px solid ${getShoeColorTheme(shoe.color).border}`
                           : "1px solid #333",
-                      transition: "background 0.2s, border 0.2s",
+                      transition:
+                        "background 0.2s, border 0.2s, box-shadow 0.2s",
                     }}
                   >
                     <div
@@ -687,19 +796,26 @@ function App() {
                         <strong style={{ fontSize: 18 }}>
                           {shoe.brand} {shoe.name}
                         </strong>{" "}
-                        <span style={{ color: "#aaa", fontSize: 15 }}>
-                          - {shoe.color}
-                        </span>{" "}
                         <br />
                         <span style={{ fontSize: 14 }}>
                           First Run: {formatDateMMDDYY(shoe.firstRunDate)}{" "}
                           <br />
-                          <span style={{ color: "#1abc9c" }}>
+                          <span style={{ color: "#fff" }}>
                             {shoe.miles.toFixed(2)} / {shoe.expectedLifecycle}{" "}
-                            mi
+                            Miles
                           </span>
                           <br />
-                          <span style={{ color: "#f1c40f" }}>
+                          <span
+                            style={{
+                              color: getLifeRemainingColor(
+                                Math.max(
+                                  0,
+                                  100 -
+                                    (shoe.miles / shoe.expectedLifecycle) * 100
+                                )
+                              ),
+                            }}
+                          >
                             Life Remaining:{" "}
                             {Math.max(
                               0,
@@ -781,12 +897,12 @@ function App() {
                             background: "#c0392b",
                             border: "none",
                             borderRadius: "50%",
-                            padding: 8,
+                            padding: 4,
                             cursor: "pointer",
-                            fontSize: "1.2em",
+                            fontSize: "0.9em",
                             lineHeight: 1,
-                            width: 36,
-                            height: 36,
+                            width: 24,
+                            height: 24,
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -819,27 +935,49 @@ function App() {
                             wordBreak: "break-word",
                           }}
                         >
-                          <thead>
-                            <tr
-                              style={{
-                                borderBottom:
-                                  "1px solid rgba(255, 255, 255, 0.2)",
-                              }}
-                            >
-                              <th style={{ textAlign: "left", padding: "8px" }}>
-                                Date
-                              </th>
-                              <th style={{ textAlign: "left", padding: "8px" }}>
-                                Miles
-                              </th>
-                              <th style={{ textAlign: "left", padding: "8px" }}>
-                                Location
-                              </th>
-                              <th
-                                style={{ textAlign: "left", padding: "8px" }}
-                              ></th>
-                            </tr>
-                          </thead>
+                          {editingLog.shoeIndex !== index && (
+                            <thead>
+                              <tr
+                                style={{
+                                  borderBottom:
+                                    "1px solid rgba(255, 255, 255, 0.2)",
+                                }}
+                              >
+                                <th
+                                  style={{
+                                    textAlign: "center",
+                                    padding: "8px",
+                                  }}
+                                >
+                                  Date
+                                </th>
+                                <th
+                                  style={{
+                                    textAlign: "center",
+                                    padding: "8px",
+                                  }}
+                                >
+                                  Miles
+                                </th>
+                                <th
+                                  style={{
+                                    textAlign: "center",
+                                    padding: "8px",
+                                  }}
+                                >
+                                  Zone
+                                </th>
+                                <th
+                                  style={{ textAlign: "left", padding: "8px" }}
+                                >
+                                  Location
+                                </th>
+                                <th
+                                  style={{ textAlign: "left", padding: "8px" }}
+                                ></th>
+                              </tr>
+                            </thead>
+                          )}
                           <tbody>
                             {shoe.logs.map((log, logIndex) =>
                               editingLog.shoeIndex === index &&
@@ -853,93 +991,231 @@ function App() {
                                       <div
                                         style={{
                                           display: "flex",
-                                          flexDirection: "row",
+                                          flexDirection: "column",
                                           gap: 8,
-                                          width: "100%",
-                                          flexWrap: "wrap",
-                                          justifyContent: "center",
                                         }}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                        onSelect={(e) => e.stopPropagation()}
                                       >
-                                        <input
-                                          type="date"
-                                          value={editLogData.date}
-                                          onChange={(e) =>
-                                            setEditLogData({
-                                              ...editLogData,
-                                              date: e.target.value,
-                                            })
-                                          }
+                                        <div
                                           style={{
-                                            flex: 1,
-                                            minWidth: 90,
-                                            maxWidth: 140,
-                                            padding: "0 10px",
-                                            fontSize: 16,
-                                            borderRadius: 8,
-                                            border: "1px solid #444",
-                                            background: "#181818",
-                                            color: "#fff",
-                                            height: 36,
                                             display: "flex",
                                             alignItems: "center",
-                                            justifyContent: "center",
-                                            boxSizing: "border-box",
+                                            gap: 8,
                                           }}
-                                        />
-                                        <input
-                                          type="number"
-                                          value={editLogData.miles}
-                                          onChange={(e) =>
-                                            setEditLogData({
-                                              ...editLogData,
-                                              miles: e.target.value,
-                                            })
-                                          }
-                                          min="0"
-                                          step="0.01"
+                                        >
+                                          <label
+                                            style={{
+                                              minWidth: "60px",
+                                              fontSize: 14,
+                                              color: "#fff",
+                                              fontWeight: 600,
+                                              textAlign: "center",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                            }}
+                                          >
+                                            Date:
+                                          </label>
+                                          <input
+                                            type="date"
+                                            value={editLogData.date}
+                                            onChange={(e) =>
+                                              setEditLogData({
+                                                ...editLogData,
+                                                date: e.target.value,
+                                              })
+                                            }
+                                            onClick={(e) => e.stopPropagation()}
+                                            onMouseDown={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            onSelect={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            style={{
+                                              flex: 1,
+                                              padding: "8px 10px",
+                                              fontSize: 14,
+                                              borderRadius: 8,
+                                              border: "1px solid #444",
+                                              background: "#fff",
+                                              color: "#000",
+                                              height: 36,
+                                              boxSizing: "border-box",
+                                              fontFamily:
+                                                "'Oswald', system-ui, sans-serif",
+                                            }}
+                                          />
+                                        </div>
+                                        <div
                                           style={{
-                                            flex: 1,
-                                            minWidth: 70,
-                                            maxWidth: 100,
-                                            padding: "0 10px",
-                                            fontSize: 16,
-                                            borderRadius: 8,
-                                            border: "1px solid #444",
-                                            background: "#181818",
-                                            color: "#fff",
-                                            height: 36,
-                                            boxSizing: "border-box",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 8,
                                           }}
-                                        />
-                                        <input
-                                          type="text"
-                                          value={editLogData.location}
-                                          onChange={(e) =>
-                                            setEditLogData({
-                                              ...editLogData,
-                                              location: e.target.value,
-                                            })
-                                          }
+                                        >
+                                          <label
+                                            style={{
+                                              minWidth: "60px",
+                                              fontSize: 14,
+                                              color: "#fff",
+                                              fontWeight: 600,
+                                              textAlign: "center",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                            }}
+                                          >
+                                            Miles:
+                                          </label>
+                                          <input
+                                            type="number"
+                                            value={editLogData.miles}
+                                            onChange={(e) =>
+                                              setEditLogData({
+                                                ...editLogData,
+                                                miles: e.target.value,
+                                              })
+                                            }
+                                            onClick={(e) => e.stopPropagation()}
+                                            onMouseDown={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            onSelect={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            min="0"
+                                            step="0.01"
+                                            style={{
+                                              flex: 1,
+                                              padding: "8px 10px",
+                                              fontSize: 14,
+                                              borderRadius: 8,
+                                              border: "1px solid #444",
+                                              background: "#fff",
+                                              color: "#000",
+                                              height: 36,
+                                              boxSizing: "border-box",
+                                              fontFamily:
+                                                "'Oswald', system-ui, sans-serif",
+                                            }}
+                                          />
+                                        </div>
+                                        <div
                                           style={{
-                                            flex: 2,
-                                            minWidth: 90,
-                                            maxWidth: 180,
-                                            padding: "0 10px",
-                                            fontSize: 16,
-                                            borderRadius: 8,
-                                            border: "1px solid #444",
-                                            background: "#181818",
-                                            color: "#fff",
-                                            height: 36,
-                                            boxSizing: "border-box",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 8,
                                           }}
-                                        />
+                                        >
+                                          <label
+                                            style={{
+                                              minWidth: "60px",
+                                              fontSize: 14,
+                                              color: "#fff",
+                                              fontWeight: 600,
+                                              textAlign: "center",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                            }}
+                                          >
+                                            Zone:
+                                          </label>
+                                          <input
+                                            type="number"
+                                            value={editLogData.zone}
+                                            onChange={(e) =>
+                                              setEditLogData({
+                                                ...editLogData,
+                                                zone: e.target.value,
+                                              })
+                                            }
+                                            onClick={(e) => e.stopPropagation()}
+                                            onMouseDown={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            onSelect={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            min="1"
+                                            max="5"
+                                            step="0.5"
+                                            style={{
+                                              flex: 1,
+                                              padding: "8px 10px",
+                                              fontSize: 14,
+                                              borderRadius: 8,
+                                              border: "1px solid #444",
+                                              background: "#fff",
+                                              color: "#000",
+                                              height: 36,
+                                              boxSizing: "border-box",
+                                              fontFamily:
+                                                "'Oswald', system-ui, sans-serif",
+                                            }}
+                                          />
+                                        </div>
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: 8,
+                                          }}
+                                        >
+                                          <label
+                                            style={{
+                                              minWidth: "60px",
+                                              fontSize: 14,
+                                              color: "#fff",
+                                              fontWeight: 600,
+                                              textAlign: "center",
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                            }}
+                                          >
+                                            Location:
+                                          </label>
+                                          <input
+                                            type="text"
+                                            value={editLogData.location}
+                                            onChange={(e) =>
+                                              setEditLogData({
+                                                ...editLogData,
+                                                location: e.target.value,
+                                              })
+                                            }
+                                            onClick={(e) => e.stopPropagation()}
+                                            onMouseDown={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            onSelect={(e) =>
+                                              e.stopPropagation()
+                                            }
+                                            style={{
+                                              flex: 1,
+                                              padding: "8px 10px",
+                                              fontSize: 14,
+                                              borderRadius: 8,
+                                              border: "1px solid #444",
+                                              background: "#fff",
+                                              color: "#000",
+                                              height: 36,
+                                              boxSizing: "border-box",
+                                              fontFamily:
+                                                "'Oswald', system-ui, sans-serif",
+                                            }}
+                                          />
+                                        </div>
                                       </div>
                                     </td>
                                   </tr>
                                   <tr key={logIndex + "-edit-actions"}>
                                     <td
-                                      colSpan={4}
+                                      colSpan={5}
                                       style={{
                                         textAlign: "center",
                                         padding: "4px 0 0 0",
@@ -948,46 +1224,80 @@ function App() {
                                       <div
                                         style={{
                                           display: "flex",
-                                          justifyContent: "center",
+                                          justifyContent: "space-between",
                                           alignItems: "center",
                                           gap: 8,
                                           flexWrap: "wrap",
                                         }}
                                       >
+                                        <div
+                                          style={{ display: "flex", gap: 8 }}
+                                        >
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              saveEditLog();
+                                            }}
+                                            style={{
+                                              padding: "8px 20px",
+                                              background: "#1abc9c",
+                                              color: "#fff",
+                                              border: "none",
+                                              borderRadius: 8,
+                                              fontWeight: 600,
+                                              fontSize: 16,
+                                              boxShadow: "0 1px 4px #1abc9c33",
+                                              cursor: "pointer",
+                                              letterSpacing: 1,
+                                            }}
+                                          >
+                                            Save
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              cancelEditLog();
+                                            }}
+                                            style={{
+                                              padding: "8px 20px",
+                                              background: "#313a3e",
+                                              color: "#b8f6e4",
+                                              border: "none",
+                                              borderRadius: 8,
+                                              fontWeight: 600,
+                                              fontSize: 16,
+                                              boxShadow: "0 1px 4px #2228",
+                                              letterSpacing: 1,
+                                              cursor: "pointer",
+                                            }}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
                                         <button
-                                          onClick={saveEditLog}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            requestDeleteRun(index, logIndex);
+                                          }}
                                           style={{
-                                            marginRight: 0,
-                                            padding: "8px 20px",
-                                            background: "#1abc9c",
                                             color: "#fff",
+                                            background: "#c0392b",
                                             border: "none",
-                                            borderRadius: 8,
-                                            fontWeight: 600,
-                                            fontSize: 16,
-                                            boxShadow: "0 1px 4px #1abc9c33",
+                                            borderRadius: "50%",
+                                            padding: 4,
                                             cursor: "pointer",
-                                            letterSpacing: 1,
+                                            fontSize: "0.9em",
+                                            lineHeight: 1,
+                                            width: 24,
+                                            height: 24,
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            marginRight: 8,
                                           }}
+                                          title="Delete run"
                                         >
-                                          Save
-                                        </button>
-                                        <button
-                                          onClick={cancelEditLog}
-                                          style={{
-                                            padding: "8px 20px",
-                                            background: "#313a3e",
-                                            color: "#b8f6e4",
-                                            border: "none",
-                                            borderRadius: 8,
-                                            fontWeight: 600,
-                                            fontSize: 16,
-                                            boxShadow: "0 1px 4px #2228",
-                                            letterSpacing: 1,
-                                            cursor: "pointer",
-                                          }}
-                                        >
-                                          Cancel
+                                          ×
                                         </button>
                                       </div>
                                     </td>
@@ -1004,11 +1314,29 @@ function App() {
                                     width: "100%",
                                   }}
                                 >
-                                  <td style={{ padding: "8px" }}>
+                                  <td
+                                    style={{
+                                      padding: "8px",
+                                      textAlign: "left",
+                                    }}
+                                  >
                                     {formatDateMMDDYY(log.date)}
                                   </td>
-                                  <td style={{ padding: "8px" }}>
+                                  <td
+                                    style={{
+                                      padding: "8px",
+                                      textAlign: "center",
+                                    }}
+                                  >
                                     {log.miles.toFixed(2)}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: "8px",
+                                      textAlign: "center",
+                                    }}
+                                  >
+                                    {log.zone || "-"}
                                   </td>
                                   <td style={{ padding: "8px" }}>
                                     {log.location || "-"}
@@ -1025,47 +1353,25 @@ function App() {
                                     }}
                                   >
                                     <button
-                                      onClick={() =>
-                                        startEditLog(index, logIndex)
-                                      }
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        startEditLog(index, logIndex);
+                                      }}
                                       style={{
                                         marginRight: 4,
                                         padding: "6px 16px",
-                                        background: "#1abc9c",
-                                        color: "#fff",
+                                        background: "#f5f5f5",
+                                        color: "#000",
                                         border: "none",
                                         borderRadius: 8,
                                         fontWeight: 600,
                                         fontSize: 15,
-                                        boxShadow: "0 1px 4px #1abc9c33",
+                                        boxShadow: "0 1px 4px #4B556333",
                                         cursor: "pointer",
                                         letterSpacing: 1,
                                       }}
                                     >
                                       Edit
-                                    </button>
-                                    <button
-                                      onClick={() =>
-                                        requestDeleteRun(index, logIndex)
-                                      }
-                                      style={{
-                                        color: "#fff",
-                                        background: "#c0392b",
-                                        border: "none",
-                                        borderRadius: "50%",
-                                        padding: 8,
-                                        cursor: "pointer",
-                                        fontSize: "1.2em",
-                                        lineHeight: 1,
-                                        width: 36,
-                                        height: 36,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                      }}
-                                      title="Delete run"
-                                    >
-                                      ×
                                     </button>
                                   </td>
                                 </tr>
@@ -1089,6 +1395,9 @@ function App() {
                     borderRadius: 12,
                     boxShadow: "0 1px 4px #0002",
                     padding: 16,
+                    maxWidth: 400,
+                    width: "85%",
+                    margin: "",
                   }}
                 >
                   <h2
@@ -1117,6 +1426,28 @@ function App() {
                       border: "1px solid #444",
                       background: "#181818",
                       color: "#fff",
+                      fontFamily: "'Oswald', system-ui, sans-serif",
+                    }}
+                  />
+                  <input
+                    type="number"
+                    value={runZone}
+                    onChange={(e) => setRunZone(e.target.value)}
+                    placeholder="Heart Rate Zone"
+                    min="1"
+                    max="5"
+                    step="0.5"
+                    style={{
+                      width: "100%",
+                      display: "block",
+                      padding: 12,
+                      marginBottom: 12,
+                      fontSize: 18,
+                      borderRadius: 8,
+                      border: "1px solid #444",
+                      background: "#181818",
+                      color: "#fff",
+                      fontFamily: "'Oswald', system-ui, sans-serif",
                     }}
                   />
                   <input
@@ -1134,6 +1465,7 @@ function App() {
                       border: "1px solid #444",
                       background: "#181818",
                       color: "#fff",
+                      fontFamily: "'Oswald', system-ui, sans-serif",
                     }}
                   />
                   <div
@@ -1335,6 +1667,7 @@ function App() {
                         background: "#181818",
                         color: "#fff",
                         boxSizing: "border-box",
+                        fontFamily: "'Oswald', system-ui, sans-serif",
                       }}
                     />
                     <input
@@ -1352,6 +1685,7 @@ function App() {
                         background: "#181818",
                         color: "#fff",
                         boxSizing: "border-box",
+                        fontFamily: "'Oswald', system-ui, sans-serif",
                       }}
                     />
                     <input
@@ -1369,6 +1703,7 @@ function App() {
                         background: "#181818",
                         color: "#fff",
                         boxSizing: "border-box",
+                        fontFamily: "'Oswald', system-ui, sans-serif",
                       }}
                     />
                     <input
@@ -1389,6 +1724,7 @@ function App() {
                         background: "#181818",
                         color: "#fff",
                         boxSizing: "border-box",
+                        fontFamily: "'Oswald', system-ui, sans-serif",
                       }}
                     />
                     <div
@@ -1515,6 +1851,7 @@ function App() {
                                 borderRadius: 6,
                                 fontSize: 16,
                                 padding: 6,
+                                fontFamily: "'Oswald', system-ui, sans-serif",
                               }}
                               autoFocus
                             />
@@ -1547,6 +1884,19 @@ function App() {
               )}
             </>
           )}
+        </div>
+
+        {/* Version Line */}
+        <div
+          style={{
+            textAlign: "center",
+            padding: "20px 0",
+            color: "#666",
+            fontSize: 14,
+            fontFamily: "'Oswald', system-ui, sans-serif",
+          }}
+        >
+          Version 1.3 - 7/19/25
         </div>
 
         {/* Confirmation Modal */}
