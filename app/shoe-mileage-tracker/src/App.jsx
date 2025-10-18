@@ -129,7 +129,7 @@ function App() {
     () => new Date().toISOString().split("T")[0]
   );
   const [runLocation, setRunLocation] = useState("");
-  const [runZone, setRunZone] = useState("");
+  const [runType, setRunType] = useState("");
   const [showAddShoeForm, setShowAddShoeForm] = useState(true);
 
   // Add state for custom alert modal
@@ -246,7 +246,7 @@ function App() {
       miles: parsed,
       date: runDate,
       location: runLocation,
-      zone: runZone,
+      zone: runType, // still stores as zone in Firestore
     });
     const updatedShoe = {
       ...shoe,
@@ -261,7 +261,7 @@ function App() {
       setMilesInput("");
       setRunDate(new Date().toISOString().split("T")[0]); // Reset to today
       setRunLocation("");
-      setRunZone("");
+      setRunType("");
     } catch (err) {
       console.error("Error adding miles:", err);
       showAlert("Failed to add miles. See console for details.");
@@ -278,7 +278,7 @@ function App() {
     miles: "",
     date: "",
     location: "",
-    zone: "",
+    runType: "",
   });
 
   // Handler to start editing a log
@@ -289,14 +289,14 @@ function App() {
       miles: log.miles.toString(),
       date: log.date,
       location: log.location || "",
-      zone: log.zone || "",
+      runType: log.zone || "",
     });
   }
 
   // Handler to cancel editing
   function cancelEditLog() {
     setEditingLog({ shoeIndex: null, logIndex: null });
-    setEditLogData({ miles: "", date: "", location: "", zone: "" });
+    setEditLogData({ miles: "", date: "", location: "", runType: "" });
   }
 
   // Handler to save edited log
@@ -316,7 +316,7 @@ function App() {
             miles: parsedMiles,
             date: editLogData.date,
             location: editLogData.location,
-            zone: editLogData.zone,
+            zone: editLogData.runType,
           }
         : log
     );
@@ -521,7 +521,7 @@ function App() {
               flex: 1,
             }}
           >
-            Shoe Tracker
+            Shoe Mileage Tracker
           </h1>
           {shoes.length > 0 && (
             <button
@@ -965,7 +965,7 @@ function App() {
                                     padding: "8px",
                                   }}
                                 >
-                                  Zone
+                                  Run Type
                                 </th>
                                 <th
                                   style={{ textAlign: "left", padding: "8px" }}
@@ -1122,15 +1122,15 @@ function App() {
                                               justifyContent: "center",
                                             }}
                                           >
-                                            Zone:
+                                            Run Type:
                                           </label>
                                           <input
-                                            type="number"
-                                            value={editLogData.zone}
+                                            type="text"
+                                            value={editLogData.runType}
                                             onChange={(e) =>
                                               setEditLogData({
                                                 ...editLogData,
-                                                zone: e.target.value,
+                                                runType: e.target.value,
                                               })
                                             }
                                             onClick={(e) => e.stopPropagation()}
@@ -1140,9 +1140,6 @@ function App() {
                                             onSelect={(e) =>
                                               e.stopPropagation()
                                             }
-                                            min="1"
-                                            max="5"
-                                            step="0.5"
                                             style={{
                                               flex: 1,
                                               padding: "8px 10px",
@@ -1430,13 +1427,10 @@ function App() {
                     }}
                   />
                   <input
-                    type="number"
-                    value={runZone}
-                    onChange={(e) => setRunZone(e.target.value)}
-                    placeholder="Heart Rate Zone"
-                    min="1"
-                    max="5"
-                    step="0.5"
+                    type="text"
+                    value={runType}
+                    onChange={(e) => setRunType(e.target.value)}
+                    placeholder="Run Type"
                     style={{
                       width: "100%",
                       display: "block",
@@ -1896,7 +1890,7 @@ function App() {
             fontFamily: "'Oswald', system-ui, sans-serif",
           }}
         >
-          Version 1.3 - 7/19/25
+          Version 1.4 - 7/19/25
         </div>
 
         {/* Confirmation Modal */}
