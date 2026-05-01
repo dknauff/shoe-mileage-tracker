@@ -1,6 +1,19 @@
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "./firebase";
+import { auth } from "../../firebase";
+
+const inputStyle = {
+  width: "100%",
+  display: "block",
+  marginBottom: 16,
+  padding: 12,
+  fontSize: 16,
+  borderRadius: 8,
+  border: "1px solid #444",
+  background: "#181818",
+  color: "#fff",
+  boxSizing: "border-box",
+};
 
 export default function EmailLogin() {
   const [email, setEmail] = useState("");
@@ -19,7 +32,6 @@ export default function EmailLogin() {
   return (
     <div
       style={{
-        padding: 0,
         width: "100vw",
         minHeight: "100vh",
         background: "#222",
@@ -52,14 +64,7 @@ export default function EmailLogin() {
         >
           Shoe Tracker
         </h1>
-        <h2
-          style={{
-            fontSize: 20,
-            margin: "0 0 24px 0",
-            textAlign: "center",
-            color: "#fff",
-          }}
-        >
+        <h2 style={{ fontSize: 20, margin: "0 0 24px 0", textAlign: "center", color: "#fff" }}>
           Sign In
         </h2>
         <form onSubmit={handleLogin}>
@@ -69,18 +74,7 @@ export default function EmailLogin() {
             placeholder="Email"
             onChange={(e) => setEmail(e.target.value)}
             required
-            style={{
-              width: "100%",
-              display: "block",
-              marginBottom: 16,
-              padding: 12,
-              fontSize: 16,
-              borderRadius: 8,
-              border: "1px solid #444",
-              background: "#181818",
-              color: "#fff",
-              boxSizing: "border-box",
-            }}
+            style={inputStyle}
           />
           <input
             type="password"
@@ -88,18 +82,7 @@ export default function EmailLogin() {
             placeholder="Password"
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{
-              width: "100%",
-              display: "block",
-              marginBottom: 20,
-              padding: 12,
-              fontSize: 16,
-              borderRadius: 8,
-              border: "1px solid #444",
-              background: "#181818",
-              color: "#fff",
-              boxSizing: "border-box",
-            }}
+            style={{ ...inputStyle, marginBottom: 20 }}
           />
           <button
             type="submit"
@@ -114,7 +97,6 @@ export default function EmailLogin() {
               fontWeight: 600,
               cursor: "pointer",
               boxShadow: "0 2px 8px #1abc9c33",
-              transition: "background-color 0.2s",
             }}
           >
             Sign In
