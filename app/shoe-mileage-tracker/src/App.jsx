@@ -39,6 +39,11 @@ function App() {
 
   if (loading) return null;
   if (!user) return <EmailLogin />;
+  if (!loaded) return (
+    <div style={{ width: "100vw", minHeight: "100vh", background: "#222", display: "flex", alignItems: "center", justifyContent: "center", color: "#aaa", fontFamily: "'Oswald', system-ui, sans-serif", fontSize: 20, letterSpacing: 1 }}>
+      Loading...
+    </div>
+  );
 
   // --- Shoe handlers ---
 

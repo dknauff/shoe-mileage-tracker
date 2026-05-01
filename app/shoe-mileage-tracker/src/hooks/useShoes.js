@@ -12,23 +12,29 @@ export function useShoes(user) {
   useEffect(() => {
     if (!user) return;
 
+    let cancelled = false;
+
     async function fetchShoes() {
       try {
         const snapshot = await getDocs(shoesCollection);
+        if (cancelled) return;
         const shoesData = snapshot.docs.map((docSnap) => ({
           ...docSnap.data(),
           id: docSnap.id,
         }));
         setShoes(shoesData);
       } catch (err) {
+        if (cancelled) return;
         console.error("Error fetching shoes:", err);
         setError("Failed to fetch shoes from Firestore. See console for details.");
       } finally {
-        setLoaded(true);
+        if (!cancelled) setLoaded(true);
       }
     }
 
     fetchShoes();
+
+    return () => { cancelled = true; };
   }, [user]);
 
   async function updateShoe(shoeId, shoeIndex, updatedFields) {
